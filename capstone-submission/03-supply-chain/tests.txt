@@ -1,0 +1,42 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
+rootdir: D:\accenture training\delivery training\claude\project 3\Investigate Supply Chain Risk with Multi-Source Synthesis\03-resilient-coordinator\solution
+configfile: pyproject.toml
+collecting ... collected 34 items
+
+tests/test_coordinator.py::test_coordinator_synthesizes_all_sources PASSED [  2%]
+tests/test_coordinator.py::test_coordinator_handles_timeout_gracefully PASSED [  5%]
+tests/test_coordinator.py::test_coordinator_handles_missing_files PASSED [  8%]
+tests/test_coordinator.py::test_coordinator_preserves_provenance PASSED [ 11%]
+tests/test_memory.py::test_memory_initialization PASSED                   [ 14%]
+tests/test_memory.py::test_claim_deduplication PASSED                     [ 17%]
+tests/test_memory.py::test_semantic_retrieval PASSED                      [ 20%]
+tests/test_memory.py::test_filter_by_supplier PASSED                      [ 23%]
+tests/test_memory.py::test_corroboration_detection PASSED                 [ 26%]
+tests/test_readers.py::test_audit_reader_parses_json PASSED              [ 29%]
+tests/test_readers.py::test_logistics_reader_parses_csv PASSED           [ 32%]
+tests/test_readers.py::test_quality_reader_queries_sqlite PASSED          [ 35%]
+tests/test_readers.py::test_news_reader_extracts_entities PASSED          [ 38%]
+tests/test_readers.py::test_news_reader_ambiguous_entity PASSED           [ 41%]
+tests/test_readers.py::test_news_reader_filters_macro_news PASSED         [ 44%]
+tests/test_readers.py::test_reader_error_handling PASSED                  [ 47%]
+tests/test_readers.py::test_reader_timestamps_iso8601 PASSED              [ 50%]
+tests/test_synthesis.py::test_synthesis_groups_well_established PASSED    [ 52%]
+tests/test_synthesis.py::test_synthesis_identifies_contested_metrics PASSED [ 55%]
+tests/test_synthesis.py::test_synthesis_identifies_incomplete_metrics PASSED [ 58%]
+tests/test_synthesis.py::test_synthesis_escalates_critical_conflicts PASSED [ 61%]
+tests/test_synthesis.py::test_synthesis_renders_markdown_tables PASSED   [ 64%]
+tests/test_synthesis.py::test_synthesis_preserves_both_conflicting_values PASSED [ 67%]
+tests/test_synthesis.py::test_synthesis_attaches_provenance_and_dates PASSED [ 70%]
+tests/test_synthesis.py::test_synthesis_handles_all_sources_failing PASSED [ 73%]
+tests/test_synthesis.py::test_synthesis_handles_empty_memory PASSED       [ 76%]
+tests/test_synthesis.py::test_briefing_section_ordering PASSED            [ 79%]
+tests/test_synthesis.py::test_briefing_warning_badges PASSED              [ 82%]
+tests/test_synthesis.py::test_briefing_callout_quotes PASSED              [ 85%]
+tests/test_synthesis.py::test_briefing_lead_time_corroboration PASSED     [ 88%]
+tests/test_synthesis.py::test_briefing_defect_rate_tolerance PASSED      [ 91%]
+tests/test_synthesis.py::test_briefing_delivery_rate_conflict PASSED      [ 94%]
+tests/test_synthesis.py::test_briefing_unresolved_distress_escalation PASSED [ 97%]
+tests/test_synthesis.py::test_briefing_missing_capacity_escalation PASSED [100%]
+
+============================= 34 passed in 150.74s =============================

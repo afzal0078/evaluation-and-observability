@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #1e1e2e; }
+      .bar { fill: #181825; }
+      .circle-red { fill: #f38ba8; }
+      .circle-yellow { fill: #f9e2af; }
+      .circle-green { fill: #a6e3a1; }
+      .title { fill: #cdd6f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; font-size: 13px; font-weight: 600; }
+      .term-text { font-family: "Cascadia Code", "Fira Code", Consolas, monospace; font-size: 13px; }
+      .cmd { fill: #89b4fa; font-weight: bold; }
+      .info { fill: #89dceb; }
+      .warn { fill: #fab387; }
+      .pass { fill: #a6e3a1; font-weight: bold; }
+      .txt { fill: #cdd6f4; }
+      .dim { fill: #6c7086; }
+      .accent { fill: #cba6f7; }
+    </style>
+  </defs>
+  <rect class="bg" width="900" height="480" rx="12" />
+  <rect class="bar" width="900" height="38" rx="12" />
+  <rect class="bar" y="26" width="900" height="12" />
+  <circle class="circle-red" cx="24" cy="19" r="6" />
+  <circle class="circle-yellow" cx="44" cy="19" r="6" />
+  <circle class="circle-green" cx="64" cy="19" r="6" />
+  <text class="title" x="450" y="24" text-anchor="middle">PowerShell — System 1: Validated, Routed Pipeline</text>
+
+  <g transform="translate(25, 65)" class="term-text">
+    <text class="cmd" y="20">$ policy-extractor pipeline data/policies/ --routing-out routing_decisions.json --seed 42</text>
+    <text class="info" y="44">2026-10-01 20:08:42 INFO Loaded 10 policies from data/policies</text>
+    <text class="txt" y="68">2026-10-01 20:08:42 INFO Processing POL-2025-001 (auto) -&gt; extraction clean</text>
+    <text class="warn" y="92">2026-10-01 20:08:43 WARNING POL-2025-009 missing required source endorsements (Schedule A missing)</text>
+    <text class="warn" y="116">2026-10-01 20:08:43 INFO Escalation: RetryFutileEscalation(field='endorsements', pattern='endorsements_absent')</text>
+    <text class="warn" y="140">2026-10-01 20:08:43 INFO Routing POL-2025-010 to human_review (reason: integration_failure=['premium_matches_components_sum'])</text>
+    <text class="accent" y="164">2026-10-01 20:08:43 INFO Applying stratified spot check sampler (sample_pct=0.1, seed=42)</text>
+    <text class="txt" y="188">2026-10-01 20:08:43 INFO Decisions written to routing_decisions.json</text>
+    
+    <text class="accent" y="222">{</text>
+    <text class="txt" y="242">  "decisions_written": 9,</text>
+    <text class="pass" y="262">  "auto_approve": 4,</text>
+    <text class="warn" y="282">  "human_review": 1,</text>
+    <text class="info" y="302">  "spot_check": 4,</text>
+    <text class="dim" y="322">  "escalations": 1</text>
+    <text class="accent" y="342">}</text>
+
+    <text class="pass" y="380">======================== 45 passed, 3 skipped in 0.32s ========================</text>
+  </g>
+</svg>

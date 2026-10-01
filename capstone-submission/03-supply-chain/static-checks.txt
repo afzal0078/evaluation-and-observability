@@ -1,0 +1,10 @@
+================================================================================
+Static Analysis: supply_chain_risk (mypy & ruff)
+================================================================================
+
+$ mypy supply_chain_risk/
+Success: no issues found in 7 source files
+
+$ ruff check supply_chain_risk/ tests/
+All checks passed!
+================================================================================

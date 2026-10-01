@@ -1,0 +1,38 @@
+================================================================================
+Evaluation and Observability Capstone — Execution Environment
+================================================================================
+
+Operating System:
+  Microsoft Windows 11 Enterprise (64-bit AMD64) [Version 10.0.26100]
+  PowerShell 5.1 / 7.x compatible shell environment
+
+Python Environment:
+  Python Version: Python 3.14.6 (tags/v3.14.6:c63aec6, Jun 10 2026, 10:26:10) [MSC v.1944 64 bit (AMD64)]
+  Binary Path: C:\Users\user\AppData\Local\Python\pythoncore-3.14-64\python.exe
+
+Virtual Environment & Dependency Management:
+  In accordance with project guidelines, projects utilize independent virtual environments /
+  isolated module namespaces under .venv with dev dependencies:
+    - .venv\Scripts\python -m pip install -e ".[dev]"
+
+Core Tool & Package Versions:
+  - pytest: 9.1.1 (pluggy 1.6.0, iniconfig 2.3.0)
+  - pytest-asyncio: 1.4.0
+  - mypy: 2.3.1 (compiled: yes, strict typing enabled)
+  - ruff: 0.16.9 (linter and code formatter)
+  - anthropic: 1.11.0 (Anthropic Python SDK)
+  - pydantic: 2.13.5 (pydantic-core 2.46.5)
+
+API Execution & Offline Policy:
+  - All test suites run fully offline using deterministic recorded responses / cassettes.
+  - System 2 (Mortgage Extraction) runs in deterministic offline replay mode:
+      mortgage-extract <document> --mode replay
+  - System 3 (Supply Chain Risk Investigation) runs in deterministic offline replay mode:
+      supply-chain-investigate meridian --offline
+      supply-chain-investigate meridian --offline --simulate-timeout
+  - Calibration report executes as pure Python (no API access required).
+  - System 1 (Policy Pipeline) live run offline fallback: In accordance with course
+    instructions ("No API access? Use the offline fallback in the Instructions — the policy
+    test suite demonstrates the same routing behavior. Capture pytest tests/test_us04_routing.py -v"),
+    both the offline routing test capture and end-to-end routing decision outputs are captured.
+================================================================================

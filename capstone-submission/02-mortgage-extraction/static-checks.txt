@@ -1,0 +1,10 @@
+================================================================================
+Static Analysis: mortgage_extractor (mypy & ruff)
+================================================================================
+
+$ mypy mortgage_extractor/
+Success: no issues found in 11 source files
+
+$ ruff check mortgage_extractor/ tests/
+All checks passed!
+================================================================================
