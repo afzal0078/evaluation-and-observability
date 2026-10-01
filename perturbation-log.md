@@ -9,51 +9,66 @@ own experiment earns more credit).
 ### System 1 — validated, routed pipeline
 
 - **Change I made (file + what I changed):**
-  In `data/policies/POL-2025-009.txt` (and verified via `tests/test_us01_retry.py::test_ac_01_04_missing_source_halts_immediately`), the document explicitly omitted the referenced endorsement schedule ("Schedule A referenced in policy text is not attached"), leaving the mandatory `endorsements` field completely missing from the ground truth text.
+  Created a copy of `data/policies/POL-2025-001.txt` as `data/policies/POL-2025-001_no_premium.txt`, and deliberately excised the entire premium section (lines 15-17: `PREMIUM SUMMARY`, `Total Policy Premium ........................  $ 1,847.62`, and `Payment Plan: Semi-Annual`), leaving the mandatory `premium_amount` field unstated in the source text.
 - **Command I ran:**
-  `pytest tests/test_us01_retry.py::test_ac_01_04_missing_source_halts_immediately -v`
+  `python -m scripts.run_perturbation` (in `04-hitl-routing/solution`, capturing output to `01-policy-pipeline/perturbation-run.txt`)
 - **What I predicted:**
-  The validator will flag this as a `missing_source` failure. Because re-prompting an LLM cannot recover information that is physically absent from the source document, the system's fail-fast boundary should immediately classify retry as futile, halt after exactly one API call (`client.call_count == 1`), and output a `RetryFutileEscalation` instead of making repeated calls that might tempt the model into hallucinating endorsements.
+  Per the system prompt instruction to return null for unstated fields, the extractor will return `premium_amount: null`. The validator will flag this as a `missing_source` failure (`category="missing_source"`, `detected_pattern="premium_amount_absent"`). Because re-prompting cannot recover information physically missing from the source document, the retry engine should recognize retry as futile, halt immediately after exactly 1 API call (`client.call_count == 1`), and return a `RetryFutileEscalation` to human review without wasting retry attempts.
 - **What actually happened (paste the key output line):**
-  ```python
-  RetryFutileEscalation(
-      policy_id='POL-2025-009',
-      field='endorsements',
-      category='missing_source',
-      detected_pattern='endorsements_absent',
-      reason='Missing source document data for endorsements cannot be resolved by retry.'
-  )
-  assert client.call_count == 1  # no further API call
+  ```text
+  Policy ID: POL-2025-001-PERTURBED
+  Result Type: RetryFutileEscalation
+  Field: premium_amount
+  Category: missing_source
+  Detected Pattern: premium_amount_absent
+  Reason: Field 'premium_amount' returned null — the source document does not contain this information. Retry is futile; escalate to human review.
+  API Call Count: 1
   ```
 - **How this differs from the unperturbed run:**
-  On unperturbed policies like `POL-2025-001.txt`, all required fields exist in the source document, allowing the extractor to succeed cleanly on the first pass (or retry formatting errors up to 3 times with specific feedback). When a required source field is genuinely missing, the system short-circuits further API calls immediately.
+  On the unperturbed source document (`data/policies/POL-2025-001.txt`), the total policy premium of $1,847.62 is present and valid; the extraction succeeds on attempt 0 (`retry_count=0`) with `PolicyExtraction(policy_id='POL-2025-001', premium_amount=1847.62)`. On the perturbed document lacking the premium line, the validator immediately halts on attempt 0, making exactly 1 API call and routing to human review instead of re-prompting the model.
 
 ---
 
 ### System 2 — schema-enforced two-pass extraction
 
 - **Change I made (file + what I changed):**
-  In `fixtures/documents/income_sum_mismatch.txt`, the line items for income (base $5,416.67, bonus $1,250.00, commission $2,140.00, overtime $385.50, and other $450.00) sum to $9,642.17. The stated monthly income figure was edited to `$10,892.17` (creating a $1,250.00 artificial discrepancy).
+  Created a copy of `fixtures/documents/income_sum_mismatch.txt` as `fixtures/documents/income_sum_mismatch_perturbed.txt` and manually edited the stated monthly earnings line from `TOTAL MONTHLY EARNINGS 10,892.17` to `TOTAL MONTHLY EARNINGS 12,500.00`, expanding the arithmetic mismatch against the itemized income sum ($9,642.17).
 - **Command I ran:**
-  `mortgage-extract fixtures/documents/income_sum_mismatch.txt --mode replay`
+  `python -m scripts.run_perturbation` (in `04-validate-mathematical-consistency/solution`, capturing output to `02-mortgage-extraction/perturbation-run.txt`)
 - **What I predicted:**
-  The LLM will produce syntactically valid JSON conforming strictly to the Pydantic schema (valid positive floats, matching keys). However, the post-extraction deterministic validator will calculate the line-item sum, compare it against the stated total, detect that the -$1,250.00 difference exceeds the $1.00 tolerance, and flag `consistent: false`.
+  The schema and JSON typing checks will still pass completely (both component numbers and stated total are valid floats). However, the mathematical consistency validator will compute the sum of components ($5,416.67 + $2,140.00 + $1,250.00 + $385.50 + $450.00 = $9,642.17) and compare it against the newly edited stated total ($12,500.00), flagging `consistent: false` with a new delta of -$2,857.83 (contrasting with the original -$1,250.00 delta).
 - **What actually happened (paste the key output line):**
   ```json
-  "validation": {
+  [ORIGINAL BUNDLED FIXTURE RUN]
+  {
+    "document": "fixtures/documents/income_sum_mismatch.txt",
+    "stated_monthly_total": 10892.17,
+    "calculated_monthly_total": 9642.17,
     "consistent": false,
-    "discrepancies": [
-      {
-        "field": "total_monthly_income",
-        "calculated": 9642.17,
-        "stated": 10892.17,
-        "delta": -1250.0
-      }
-    ]
+    "discrepancy": {
+      "field": "total_monthly_income",
+      "calculated": 9642.17,
+      "stated": 10892.17,
+      "delta": -1250.0
+    }
+  }
+
+  [PERTURBED FIXTURE RUN (LEARNER-EDITED STATED TOTAL: $12,500.00)]
+  {
+    "document": "fixtures/documents/income_sum_mismatch_perturbed.txt",
+    "stated_monthly_total": 12500.0,
+    "calculated_monthly_total": 9642.17,
+    "consistent": false,
+    "discrepancy": {
+      "field": "total_monthly_income",
+      "calculated": 9642.17,
+      "stated": 12500.0,
+      "delta": -2857.83
+    }
   }
   ```
 - **How this differs from the unperturbed run:**
-  On an unperturbed clean document like `fixtures/documents/appraisal_informal_sqft.txt`, the validator confirms mathematical consistency, outputting `"consistent": true` and `"discrepancies": []`. The perturbation demonstrates that tool calling and schema validation only enforce syntax; programmatic business logic is needed to catch arithmetic contradictions.
+  The original bundled paystub had a stated total of $10,892.17, creating a delta of -$1,250.00 (the bonus amount was double-counted). In my perturbed fixture with the stated total manually edited to $12,500.00, the validator flags the enlarged discrepancy with `delta = -2857.83`. Both contrast with an unperturbed mathematically consistent document (such as `appraisal_informal_sqft.txt`), which returns `consistent: true` and `discrepancies: []`.
 
 ---
 

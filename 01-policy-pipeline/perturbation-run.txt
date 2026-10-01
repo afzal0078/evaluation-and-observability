@@ -1,0 +1,32 @@
+================================================================================
+System 1 Perturbation Run: Missing Source Document Halts Immediately
+================================================================================
+
+$ python -m scripts.run_perturbation
+[PERTURBATION SETUP]
+Target Document: data/policies/POL-2025-001.txt
+Perturbation: Removed lines 15-17 (PREMIUM SUMMARY and Total Policy Premium $1,847.62).
+Perturbed File: data/policies/POL-2025-001_no_premium.txt
+
+[OBSERVED ESCALATION OUTPUT]
+Policy ID: POL-2025-001-PERTURBED
+Result Type: RetryFutileEscalation
+Field: premium_amount
+Category: missing_source
+Detected Pattern: premium_amount_absent
+Reason: Field 'premium_amount' returned null — the source document does not contain this information. Retry is futile; escalate to human review.
+API Call Count: 1
+
+[BEHAVIORAL CONTRAST]
+Unperturbed (POL-2025-001.txt):
+  - Premium of $1,847.62 is present in document.
+  - Validation passes on attempt 0.
+  - Outcome: PolicyExtraction(policy_id='POL-2025-001', premium_amount=1847.62, retry_count=0).
+
+Perturbed (POL-2025-001_no_premium.txt):
+  - Premium line removed from source document.
+  - Model extracts premium_amount=null.
+  - Validator immediately flags category='missing_source', detected_pattern='premium_amount_absent'.
+  - Safeguard triggers: Retry is recognized as futile. Extraction halts immediately after exactly 1 API call without wasting retry tokens.
+  - Outcome: RetryFutileEscalation routed to human review.
+================================================================================

@@ -25,60 +25,53 @@
 | Evidence | Value |
 |---|---|
 | Passing test count | 45 passed, 3 skipped (01-policy-pipeline/tests.txt) |
-| Routing output file | 01-policy-pipeline/routing_decisions.json |
-| auto_approve / human_review / spot_check counts | 4 / 1 / 4 |
+| Routing evidence file | 01-policy-pipeline/routing-tests.txt (accepted no-key fallback: 9 passed) |
+| Routing test coverage | 9 tests covering auto_approve, low confidence routing, integration failure routing, reviewer disagreement override, stratified spot_check, and sliced calibration |
 
 **1a. Retry boundary.** From your perturbation run (a required field removed), paste the escalation
 record. How many API calls did the system make, and why is retrying a futile case worse than
 escalating it?
 
-> In my run on `POL-2025-009`, the extractor made **exactly 1 API call** before halting.
+> From my perturbation run artifact (`01-policy-pipeline/perturbation-run.txt`), where I excised the premium section from `data/policies/POL-2025-001.txt` (`POL-2025-001_no_premium.txt`), the system made **exactly 1 API call** before immediately halting.
 >
-> Here is the exact escalation record from my artifact (`01-policy-pipeline/pipeline-run.txt` & `tests/test_us01_retry.py`):
-> ```json
-> {
->   "kind": "escalation",
->   "policy_id": "POL-2025-009",
->   "field": "endorsements",
->   "category": "missing_source",
->   "detected_pattern": "endorsements_absent",
->   "reason": "Missing source document data for endorsements cannot be resolved by retry."
-> }
+> Here is the exact escalation record from `01-policy-pipeline/perturbation-run.txt`:
+> ```text
+> Policy ID: POL-2025-001-PERTURBED
+> Result Type: RetryFutileEscalation
+> Field: premium_amount
+> Category: missing_source
+> Detected Pattern: premium_amount_absent
+> Reason: Field 'premium_amount' returned null — the source document does not contain this information. Retry is futile; escalate to human review.
+> API Call Count: 1
 > ```
 >
 > **Why retrying a futile case is worse than escalating it:**
-> If an endorsement schedule was never attached to the source document in the first place, re-prompting the LLM won't magically materialize it. In the best case, retrying burns API credits and adds seconds of unnecessary latency waiting for the model to repeat itself. In the worst case, repeated error prompts pressure the model into making up believable-sounding endorsements just to satisfy the schema's required field constraint. Halting immediately on `missing_source` and kicking the case to a human queue is the only sound engineering design: it fails fast, prevents hallucinated insurance coverage, and immediately alerts operations that a schedule attachment is physically missing.
+> When a required field is genuinely absent from the physical source document, re-prompting the LLM cannot recover missing truth because the ground truth does not exist. In the best case, retrying simply burns token budget and injects latency waiting for the model to re-state that the value is missing. In the worst case, repeatedly nudging an LLM with error messages creates intense pressure to fabricate believable numbers—hallucinating coverage or premium amounts just to satisfy the schema's required field constraint. Halting immediately on `category="missing_source"` after exactly 1 API call preserves budget, prevents hallucinations from entering production, and deterministically routes the document to a human adjuster.
 
 **1b. Reading the router.** Pick one `human_review` record from your routing output. Which of the
 three signals (confidence, reviewer, integration) sent it to a human? If you had trusted the model's
 confidence alone, what would have happened?
 
-> I picked record `POL-2025-010` from `01-policy-pipeline/routing_decisions.json`:
-> ```json
-> {
->   "policy_id": "POL-2025-010",
->   "policy_type": "home",
->   "decision": "human_review",
->   "reason": "integration_failure=['premium_matches_components_sum']",
->   "fields_below_threshold": [],
->   "reviewer_disagreements": [],
->   "integration_failures": [
->     "premium_matches_components_sum"
->   ],
->   "confidence_summary": {
->     "coverage_limit": 0.95,
->     "deductible": 0.95,
->     "endorsements": 0.95,
->     "exclusions": 0.95,
->     "policy_type": 0.95,
->     "premium_amount": 0.95
->   }
-> }
+> From my routing test run (`01-policy-pipeline/routing-tests.txt`), I trace the human-review case evaluated in `test_ac_04_02_integration_failure_routes_to_human_review`.
+>
+> In this case, the extraction record carries high self-reported confidence (`0.95` across all fields, well above the 0.90 threshold), and the independent reviewer reports complete agreement across all fields (`_all_agree()`). However, the deterministic programmatic integration check detects an arithmetic mismatch between the stated premium and its itemized components:
+> ```python
+> IntegrationFinding(
+>     check_name="premium_matches_components_sum",
+>     status="fail",
+>     details="50 dollar discrepancy",
+> )
 > ```
+> Evaluating this record through `route_extraction(...)` produces:
+> - `decision.decision == "human_review"`
+> - `decision.integration_failures == ["premium_matches_components_sum"]`
+> - `decision.fields_below_threshold == []`
+> - `decision.reviewer_disagreements == []`
+>
 > **Signal that drove the decision:** The **integration failure** signal (`premium_matches_components_sum`).
 >
-> **What would have happened if I only trusted confidence:**
-> The model rated its own confidence at `0.95` across every single field, including `premium_amount`, easily clearing the 0.90 threshold. If the router had relied solely on the model's self-assessed confidence, `POL-2025-010` would have sailed straight through to `auto_approve`. In reality, the document's stated premium was $2,400.00 while the itemized components actually added up to $2,350.00 (a real $50 accounting discrepancy). Relying on model confidence alone would have pushed an erroneous financial ledger into production. The router requiring `(confidence ∧ reviewer ∧ integration)` all to pass simultaneously is what caught the bug.
+> **What would have happened if I trusted the model's confidence alone:**
+> The model's self-assessed confidence was `0.95` on every single field, including `premium_amount`. If the router had relied solely on the model's confidence, this policy would have bypassed human review and routed directly to `auto_approve`. A contract with an internal $50 arithmetic contradiction would have been written directly to downstream ledger systems without inspection. Because the router deterministically enforces `(confidence ∧ reviewer ∧ integration)`, a failure on any single independent signal overrides high model confidence and guarantees routing to a human underwriter.
 
 **1c. Where the aggregate lies.** Run the calibration snippet. Quote the one cell whose accuracy lags
 its confidence, plus the overall figure. What does slicing by `policy_type × field` catch that a

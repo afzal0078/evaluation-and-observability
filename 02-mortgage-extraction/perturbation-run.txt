@@ -1,0 +1,47 @@
+================================================================================
+System 2 Perturbation Run: Mathematical Consistency with Learner-Edited Stated Total
+================================================================================
+
+$ python -m scripts.run_perturbation
+Created fixtures\documents\income_sum_mismatch_perturbed.txt (stated total changed from 10,892.17 to 12,500.00)
+
+[ORIGINAL BUNDLED FIXTURE RUN]
+{
+  "document": "fixtures/documents/income_sum_mismatch.txt",
+  "stated_monthly_total": 10892.17,
+  "calculated_monthly_total": 9642.17,
+  "consistent": false,
+  "discrepancy": {
+    "field": "total_monthly_income",
+    "calculated": 9642.17,
+    "stated": 10892.17,
+    "delta": -1250.0
+  }
+}
+
+[PERTURBED FIXTURE RUN (LEARNER-EDITED STATED TOTAL: $12,500.00)]
+{
+  "document": "fixtures/documents/income_sum_mismatch_perturbed.txt",
+  "stated_monthly_total": 12500.0,
+  "calculated_monthly_total": 9642.17,
+  "consistent": false,
+  "discrepancy": {
+    "field": "total_monthly_income",
+    "calculated": 9642.17,
+    "stated": 12500.0,
+    "delta": -2857.83
+  }
+}
+
+[BEHAVIORAL CONTRAST]
+Original Bundled Fixture (income_sum_mismatch.txt):
+  - Stated monthly total: $10,892.17
+  - Calculated sum of components: $9,642.17 (5416.67 + 2140.00 + 1250.00 + 385.50 + 450.00)
+  - Delta: calculated - stated = 9642.17 - 10892.17 = -1250.00 (the bonus amount of $1,250 was double-counted on the paystub).
+
+Perturbed Fixture (income_sum_mismatch_perturbed.txt):
+  - Learner edited stated monthly total: $12,500.00
+  - Calculated sum of components remains: $9,642.17
+  - Delta: calculated - stated = 9642.17 - 12500.00 = -2857.83
+  - The validator flags consistent=false and produces the new discrepancy delta of -$2,857.83, surfacing the exact arithmetic divergence without silent truncation or corruption.
+================================================================================
